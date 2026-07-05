@@ -114,26 +114,24 @@
 
                 <div id="network-section" class="tab-content hidden">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                            <div id="net-card-all" onclick="filterNetworkStatus('all')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center cursor-pointer transition-all hover:shadow-md ring-2 ring-indigo-500 bg-indigo-50/30">
-                                <div class="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-xl"><i class="fa-solid fa-server"></i></div>
-                                <div class="ml-4"><p class="text-sm text-slate-500 font-medium">Tổng thiết bị</p><p class="text-2xl font-bold text-slate-800" id="net-total">0</p></div>
-                            </div>
-                            <div id="net-card-online" onclick="filterNetworkStatus('online')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center cursor-pointer transition-all hover:border-green-300 hover:shadow-md">
-                                <div class="w-12 h-12 bg-green-50 text-green-500 rounded-full flex items-center justify-center text-xl"><i class="fa-solid fa-signal"></i></div>
-                                <div class="ml-4"><p class="text-sm text-slate-500 font-medium">Đang Online</p><p class="text-2xl font-bold text-slate-800" id="net-online">0</p></div>
-                            </div>
-                            <div id="net-card-offline" onclick="filterNetworkStatus('offline')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center cursor-pointer transition-all hover:border-red-300 hover:shadow-md">
-                                <div class="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-xl"><i class="fa-solid fa-triangle-exclamation animate-pulse"></i></div>
-                                <div class="ml-4"><p class="text-sm text-slate-500 font-medium">Offline / Lỗi</p><p class="text-2xl font-bold text-red-600" id="net-offline">0</p></div>
-                            </div>
-                            <div id="net-card-warning" onclick="filterNetworkStatus('warning')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center cursor-pointer transition-all hover:border-orange-300 hover:shadow-md">
-                                <div class="w-12 h-12 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center text-xl"><i class="fa-solid fa-stopwatch"></i></div>
-                                <div class="ml-4"><p class="text-sm text-slate-500 font-medium">Cảnh báo (High Ping)</p><p class="text-2xl font-bold text-orange-600"><span id="net-ping">0</span></p></div>
-                            </div>
+                        <div id="net-card-all" onclick="filterNetworkStatus('all')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center cursor-pointer transition-all hover:shadow-md ring-2 ring-indigo-500 bg-indigo-50/30">
+                            <div class="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-xl"><i class="fa-solid fa-server"></i></div>
+                            <div class="ml-4"><p class="text-sm text-slate-500 font-medium">Tổng thiết bị</p><p class="text-2xl font-bold text-slate-800" id="net-total">0</p></div>
+                        </div>
+                        <div id="net-card-online" onclick="filterNetworkStatus('online')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center cursor-pointer transition-all hover:border-green-300 hover:shadow-md">
+                            <div class="w-12 h-12 bg-green-50 text-green-500 rounded-full flex items-center justify-center text-xl"><i class="fa-solid fa-signal"></i></div>
+                            <div class="ml-4"><p class="text-sm text-slate-500 font-medium">Đang Online</p><p class="text-2xl font-bold text-slate-800" id="net-online">0</p></div>
+                        </div>
+                        <div id="net-card-offline" onclick="filterNetworkStatus('offline')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center cursor-pointer transition-all hover:border-red-300 hover:shadow-md">
+                            <div class="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-xl"><i class="fa-solid fa-triangle-exclamation animate-pulse"></i></div>
+                            <div class="ml-4"><p class="text-sm text-slate-500 font-medium">Offline / Lỗi</p><p class="text-2xl font-bold text-red-600" id="net-offline">0</p></div>
+                        </div>
+                        <div id="net-card-warning" onclick="filterNetworkStatus('warning')" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center cursor-pointer transition-all hover:border-orange-300 hover:shadow-md">
+                            <div class="w-12 h-12 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center text-xl"><i class="fa-solid fa-stopwatch"></i></div>
+                            <div class="ml-4"><p class="text-sm text-slate-500 font-medium">Cảnh báo (High Ping)</p><p class="text-2xl font-bold text-orange-600"><span id="net-ping">0</span></p></div>
                         </div>
                     </div>
-                    </div>
+                    
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                         <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                             <div class="flex justify-between items-center mb-4">
