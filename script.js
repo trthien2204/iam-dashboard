@@ -266,6 +266,42 @@
     let networkChartInstance = null; let networkPoller = null; let localNetworkCache = [];
 
     window.initNetworkDashboard = () => {
+        // Biến toàn cục để lưu Biểu đồ
+        let networkChartInstance = null;
+
+        // Gắn cái này vào hàm initNetworkDashboard của mày
+        const ctx = document.getElementById('networkChart').getContext('2d');
+        if (networkChartInstance) networkChartInstance.destroy(); // Xóa cái cũ nếu F5
+        
+        networkChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Thời gian (Trục X)
+                datasets: [
+                    { label: 'Download (Mbps)', borderColor: '#4F46E5', backgroundColor: 'rgba(79, 70, 229, 0.1)', data: [], fill: true, tension: 0.4 },
+                    { label: 'Upload (Mbps)', borderColor: '#EC4899', backgroundColor: 'rgba(236, 72, 153, 0.1)', data: [], fill: true, tension: 0.4 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
+        });
+
+        // Hàm cập nhật data Live 
+        window.updateChartLive = (down, up) => {
+            if (!networkChartInstance) return;
+            const now = new Date().toLocaleTimeString();
+            networkChartInstance.data.labels.push(now);
+            networkChartInstance.data.datasets[0].data.push(down);
+            networkChartInstance.data.datasets[1].data.push(up);
+            
+            // Giữ lại 15 điểm mốc gần nhất cho biểu đồ nó "trôi" đẹp
+            if (networkChartInstance.data.labels.length > 15) {
+                networkChartInstance.data.labels.shift();
+                networkChartInstance.data.datasets[0].data.shift();
+                networkChartInstance.data.datasets[1].data.shift();
+            }
+            networkChartInstance.update();
+        };
+
         fetchNetworkData();
         if (networkPoller) clearInterval(networkPoller);
         networkPoller = setInterval(fetchLocalNetworkData, 10000); 
