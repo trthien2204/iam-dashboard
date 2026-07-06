@@ -302,7 +302,7 @@
             networkChartInstance.update();
         };
 
-        fetchNetworkData();
+        fetchLocalNetworkData();
         if (networkPoller) clearInterval(networkPoller);
         networkPoller = setInterval(fetchLocalNetworkData, 10000); 
         
@@ -529,7 +529,7 @@
         const mac = document.getElementById('hdn-detail-mac').value; const name = document.getElementById('txt-detail-custom-name').value;
         if (!name.trim()) return alert("Vui lòng nhập tên!");
         const res = await fetch(`${BACKEND_URL}/api/network/update-label`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac: mac, customName: name }) });
-        const result = await res.json(); if (result.success) { window.closeModal('net-device-detail-modal'); fetchNetworkData(); } else { alert(result.message); }
+        const result = await res.json(); if (result.success) { window.closeModal('net-device-detail-modal'); fetchLocalNetworkData(); } else { alert(result.message); }
     };
 
     function writeToTerminal(text, cleanBefore = false) {
