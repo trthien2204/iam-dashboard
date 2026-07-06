@@ -271,12 +271,17 @@
 
         // Gắn cái này vào hàm initNetworkDashboard của mày
         const networkCtx = document.getElementById('networkChart').getContext('2d');
-        if (networkChartInstance) networkChartInstance.destroy(); // Xóa cái cũ nếu F5
+        if (networkChartInstance) {
+            networkChartInstance.destroy();
+        }
         
-        networkChartInstance = new Chart(ctx, {
+        // 2. Khởi tạo biểu đồ với tên biến mới cực chuẩn
+        const networkCtx = document.getElementById('networkChart').getContext('2d');
+        
+        networkChartInstance = new Chart(networkCtx, {  // <-- Đổi sạch sẽ ở đây rồi nhé!
             type: 'line',
             data: {
-                labels: [], // Thời gian (Trục X)
+                labels: [], 
                 datasets: [
                     { label: 'Download (Mbps)', borderColor: '#4F46E5', backgroundColor: 'rgba(79, 70, 229, 0.1)', data: [], fill: true, tension: 0.4 },
                     { label: 'Upload (Mbps)', borderColor: '#EC4899', backgroundColor: 'rgba(236, 72, 153, 0.1)', data: [], fill: true, tension: 0.4 }
