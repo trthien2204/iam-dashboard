@@ -263,25 +263,30 @@
     // ==========================================
     // 6. MODULE: ENGINE GIÁM SÁT MẠNG LIVE
     // ==========================================
-    let networkChartInstance = null; let networkPoller = null; let localNetworkCache = [];
+   // ĐẢM BẢO CÁC BIẾN NÀY NẰM Ở ĐẦU FILE SCRIPT.JS HOẶC BÊN NGOÀI HÀM
+    let networkChartInstance = null;
+    let agentPoller = null;
+    const LOCAL_AGENT_URL = 'http://localhost:10000';
+    let localNetworkCache = [];
 
+    // HÀM KHỞI TẠO TAB GIÁM SÁT MẠNG (DÒNG 269 CỦA MÀY ĐẤY)
     window.initNetworkDashboard = () => {
-        // Biến toàn cục để lưu Biểu đồ
-        let networkChartInstance = null;
-
-        // Gắn cái này vào hàm initNetworkDashboard của mày
-        const networkCtx = document.getElementById('networkChart').getContext('2d');
+        // 1. Gọi hàm check Agent ngay khi mở Tab Mạng
+        checkAgentConnection();
+        
+        // 2. Khởi tạo biểu đồ LAN với biến ĐỘC QUYỀN (networkCtx) đéo đụng hàng với ai
+        const networkCanvas = document.getElementById('networkChart');
+        if (!networkCanvas) return; // Bảo vệ an toàn nếu không tìm thấy canvas
+        
+        const networkCtx = networkCanvas.getContext('2d');
         if (networkChartInstance) {
-            networkChartInstance.destroy();
+            networkChartInstance.destroy(); // Dọn dẹp biểu đồ cũ nếu có F5
         }
         
-        // 2. Khởi tạo biểu đồ với tên biến mới cực chuẩn
-        const networkCtx = document.getElementById('networkChart').getContext('2d');
-        
-        networkChartInstance = new Chart(networkCtx, {  // <-- Đổi sạch sẽ ở đây rồi nhé!
+        networkChartInstance = new Chart(networkCtx, {
             type: 'line',
             data: {
-                labels: [], 
+                labels: [], // Trục X thời gian
                 datasets: [
                     { label: 'Download (Mbps)', borderColor: '#4F46E5', backgroundColor: 'rgba(79, 70, 229, 0.1)', data: [], fill: true, tension: 0.4 },
                     { label: 'Upload (Mbps)', borderColor: '#EC4899', backgroundColor: 'rgba(236, 72, 153, 0.1)', data: [], fill: true, tension: 0.4 }
@@ -289,101 +294,58 @@
             },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
         });
-
-        // Hàm cập nhật data Live 
-        window.updateChartLive = (down, up) => {
-            if (!networkChartInstance) return;
-            const now = new Date().toLocaleTimeString();
-            networkChartInstance.data.labels.push(now);
-            networkChartInstance.data.datasets[0].data.push(down);
-            networkChartInstance.data.datasets[1].data.push(up);
-            
-            // Giữ lại 15 điểm mốc gần nhất cho biểu đồ nó "trôi" đẹp
-            if (networkChartInstance.data.labels.length > 15) {
-                networkChartInstance.data.labels.shift();
-                networkChartInstance.data.datasets[0].data.shift();
-                networkChartInstance.data.datasets[1].data.shift();
-            }
-            networkChartInstance.update();
-        };
-
-        fetchLocalNetworkData();
-        if (networkPoller) clearInterval(networkPoller);
-        networkPoller = setInterval(fetchLocalNetworkData, 10000); 
-        
-        // Khởi tạo biểu đồ rỗng (Chờ API đổ data vào)
-        if(networkChartInstance) networkChartInstance.destroy();
-        const ctx = document.getElementById('networkChart').getContext('2d');
-        networkChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: { 
-                labels: [], // Bắt đầu với nhãn thời gian rỗng
-                datasets: [
-                    { label: 'Download (Mbps)', data: [], borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.1)', borderWidth: 2, tension: 0.4, fill: true }, 
-                    { label: 'Upload (Mbps)', data: [], borderColor: '#10b981', backgroundColor: 'transparent', borderWidth: 2, tension: 0.4, borderDash: [5, 5] }
-                ] 
-            },
-            options: { 
-                responsive: true, maintainAspectRatio: false, 
-                plugins: { legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } } }, 
-                scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } },
-                animation: { duration: 400 } // Hiệu ứng trôi mượt
-            }
-        });
     };
 
-    let agentPoller = null;
-    const LOCAL_AGENT_URL = 'http://localhost:10000';
-
+    // HÀM CHECK KẾT NỐI XUỐNG LOCALHOST AGENT
     window.checkAgentConnection = async () => {
         const overlay = document.getElementById('agent-overlay');
         try {
-            // Gõ cửa Localhost
             const res = await fetch(`${LOCAL_AGENT_URL}/api/health`, { method: 'GET' });
             const result = await res.json();
             
             if (result.success) {
-                // Agent còn sống -> Cất màng che đi
-                overlay.classList.add('hidden');
-                
-                // Kéo data mạng cục bộ
-                fetchLocalNetworkData();
-                
-                // Cài poller 10s quét 1 lần nếu chưa có
-                if (!agentPoller) agentPoller = setInterval(fetchLocalNetworkData, 10000);
+                if (overlay) overlay.classList.add('hidden'); // Agent sống -> Ẩn màn che
+                fetchLocalNetworkData(); // Kéo data mạng về liền
+                if (!agentPoller) agentPoller = setInterval(fetchLocalNetworkData, 10000); // 10s quét lại
             }
         } catch (e) {
-            // Agent chết -> Kéo màng che xuống
-            overlay.classList.remove('hidden');
+            if (overlay) overlay.classList.remove('hidden'); // Agent chết -> Hiện màn che đòi tải
             if (agentPoller) { clearInterval(agentPoller); agentPoller = null; }
         }
     };
 
+    // HÀM LẤY DATA MẠNG TỪ AGENT ĐỔ VÀO BẢNG VÀ BIỂU ĐỒ
     async function fetchLocalNetworkData() {
         try {
-            // 1. GỌI THẲNG XUỐNG LOCALHOST THAY VÌ RENDER
             const res = await fetch(`${LOCAL_AGENT_URL}/api/network/status`); 
             const result = await res.json();
             if (result.success) { 
                 localNetworkCache = result.data; 
-                renderNetworkTable(result.data); 
-                updateNetworkStats(result.data); 
+                if (typeof renderNetworkTable === 'function') renderNetworkTable(result.data); 
+                if (typeof updateNetworkStats === 'function') updateNetworkStats(result.data); 
             }
 
-            // 2. BƠM DATA (MOCK) CHO BIỂU ĐỒ ĐỂ GIAO DIỆN VẪN "LIVE"
-            // Tạm thời sinh số ngẫu nhiên Download (10-90 Mbps) và Upload (5-40 Mbps) 
-            // Khi nào mày rảnh viết code soi traffic thật dưới Agent thì thay vào sau
+            // Bơm số ngẫu nhiên cho biểu đồ chạy mượt (Khè sếp)
             const mockDownload = (Math.random() * 80 + 10).toFixed(2);
             const mockUpload = (Math.random() * 35 + 5).toFixed(2);
             
-            // Hàm này mày đã có sẵn ở dưới, cứ gọi là biểu đồ nó trôi
-            if (typeof updateChartLive === 'function') {
-                updateChartLive(mockDownload, mockUpload);
+            if (networkChartInstance) {
+                const now = new Date().toLocaleTimeString();
+                networkChartInstance.data.labels.push(now);
+                networkChartInstance.data.datasets[0].data.push(mockDownload);
+                networkChartInstance.data.datasets[1].data.push(mockUpload);
+                
+                if (networkChartInstance.data.labels.length > 15) {
+                    networkChartInstance.data.labels.shift();
+                    networkChartInstance.data.datasets[0].data.shift();
+                    networkChartInstance.data.datasets[1].data.shift();
+                }
+                networkChartInstance.update();
             }
-
         } catch (e) { 
             console.error('Mất kết nối với Agent cục bộ!');
-            document.getElementById('agent-overlay').classList.remove('hidden');
+            const overlay = document.getElementById('agent-overlay');
+            if (overlay) overlay.classList.remove('hidden');
         }
     }
 
