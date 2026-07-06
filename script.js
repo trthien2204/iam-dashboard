@@ -270,7 +270,7 @@
         let networkChartInstance = null;
 
         // Gắn cái này vào hàm initNetworkDashboard của mày
-        const ctx = document.getElementById('networkChart').getContext('2d');
+        const networkCtx = document.getElementById('networkChart').getContext('2d');
         if (networkChartInstance) networkChartInstance.destroy(); // Xóa cái cũ nếu F5
         
         networkChartInstance = new Chart(ctx, {
