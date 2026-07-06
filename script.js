@@ -268,7 +268,7 @@
     window.initNetworkDashboard = () => {
         fetchNetworkData();
         if (networkPoller) clearInterval(networkPoller);
-        networkPoller = setInterval(fetchNetworkData, 10000); 
+        networkPoller = setInterval(fetchLocalNetworkData, 10000); 
         
         // Khởi tạo biểu đồ rỗng (Chờ API đổ data vào)
         if(networkChartInstance) networkChartInstance.destroy();
@@ -291,10 +291,37 @@
         });
     };
 
-    async function fetchNetworkData() {
+    let agentPoller = null;
+    const LOCAL_AGENT_URL = 'http://localhost:10000';
+
+    window.checkAgentConnection = async () => {
+        const overlay = document.getElementById('agent-overlay');
         try {
-            // 1. Lấy trạng thái Ping của các Node
-            const res = await fetch(`${BACKEND_URL}/api/network/status`); 
+            // Gõ cửa Localhost
+            const res = await fetch(`${LOCAL_AGENT_URL}/api/health`, { method: 'GET' });
+            const result = await res.json();
+            
+            if (result.success) {
+                // Agent còn sống -> Cất màng che đi
+                overlay.classList.add('hidden');
+                
+                // Kéo data mạng cục bộ
+                fetchLocalNetworkData();
+                
+                // Cài poller 10s quét 1 lần nếu chưa có
+                if (!agentPoller) agentPoller = setInterval(fetchLocalNetworkData, 10000);
+            }
+        } catch (e) {
+            // Agent chết -> Kéo màng che xuống
+            overlay.classList.remove('hidden');
+            if (agentPoller) { clearInterval(agentPoller); agentPoller = null; }
+        }
+    };
+
+    async function fetchLocalNetworkData() {
+        try {
+            // 1. GỌI THẲNG XUỐNG LOCALHOST THAY VÌ RENDER
+            const res = await fetch(`${LOCAL_AGENT_URL}/api/network/status`); 
             const result = await res.json();
             if (result.success) { 
                 localNetworkCache = result.data; 
@@ -302,13 +329,21 @@
                 updateNetworkStats(result.data); 
             }
 
-            // 2. Lấy băng thông thực tế của Server đổ vào Biểu đồ
-            const trafficRes = await fetch(`${BACKEND_URL}/api/network/traffic`);
-            const trafficResult = await trafficRes.json();
-            if (trafficResult.success) {
-                updateChartLive(trafficResult.download, trafficResult.upload);
+            // 2. BƠM DATA (MOCK) CHO BIỂU ĐỒ ĐỂ GIAO DIỆN VẪN "LIVE"
+            // Tạm thời sinh số ngẫu nhiên Download (10-90 Mbps) và Upload (5-40 Mbps) 
+            // Khi nào mày rảnh viết code soi traffic thật dưới Agent thì thay vào sau
+            const mockDownload = (Math.random() * 80 + 10).toFixed(2);
+            const mockUpload = (Math.random() * 35 + 5).toFixed(2);
+            
+            // Hàm này mày đã có sẵn ở dưới, cứ gọi là biểu đồ nó trôi
+            if (typeof updateChartLive === 'function') {
+                updateChartLive(mockDownload, mockUpload);
             }
-        } catch (e) { console.error('Lỗi lấy dữ liệu mạng:', e); }
+
+        } catch (e) { 
+            console.error('Mất kết nối với Agent cục bộ!');
+            document.getElementById('agent-overlay').classList.remove('hidden');
+        }
     }
 
     // Hàm cập nhật Biểu đồ hiệu ứng trôi (Sliding effect)
