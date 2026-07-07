@@ -1,7 +1,7 @@
 (function() {
     const supabaseUrl = 'https://bxeddeelymssuhkqaldl.supabase.co'; 
     const supabaseKey = 'sb_publishable_107e75n5oK1mUvevQlIbsA_wm6MtInL';     
-    const LOCAL_AGENT_URL = 'https://iam-cloud-api.onrender.com';
+    const BACKEND_URL = 'https://iam-cloud-api.onrender.com';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
     // ==========================================
