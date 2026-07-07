@@ -1,7 +1,7 @@
 (function() {
     const supabaseUrl = 'https://bxeddeelymssuhkqaldl.supabase.co'; 
     const supabaseKey = 'sb_publishable_107e75n5oK1mUvevQlIbsA_wm6MtInL';     
-    const BACKEND_URL = 'https://iam-cloud-api.onrender.com';
+    const LOCAL_AGENT_URL = 'https://iam-cloud-api.onrender.com';
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
     // ==========================================
@@ -39,7 +39,7 @@
         const btn = document.getElementById('login-btn'); const err = document.getElementById('login-error');
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; err.classList.add('hidden');
         try {
-            const res = await fetch(`${BACKEND_URL}/api/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
+            const res = await fetch(`${LOCAL_AGENT_URL}/api/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
             const data = await res.json();
             if (data.success) { sessionStorage.setItem('it_token', 'true'); sessionStorage.setItem('it_role', data.role); sessionStorage.setItem('it_username', data.username); checkAuth(); } 
             else { err.classList.remove('hidden'); }
@@ -61,7 +61,7 @@
         e.preventDefault();
         const u = document.getElementById('new-username').value; const p = document.getElementById('new-password').value; const msg = document.getElementById('create-user-msg');
         try {
-            const res = await fetch(`${BACKEND_URL}/api/users/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
+            const res = await fetch(`${LOCAL_AGENT_URL}/api/users/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
             const data = await res.json();
             msg.classList.remove('hidden', 'bg-red-50', 'text-red-600', 'bg-green-50', 'text-green-600');
             if (data.success) { msg.classList.add('bg-green-50', 'text-green-600'); msg.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Tạo thành công!'; document.getElementById('new-username').value = ''; document.getElementById('new-password').value = ''; } 
@@ -223,18 +223,18 @@
     // CÁC HÀM XỬ LÝ NÚT BẤM CỦA WORKFLOW
     // ------------------------------------------
     window.confirmAcceptClick = (id, missingStr) => { if (missingStr) { document.getElementById('missing-fields-list').innerHTML = missingStr.split(',').map(f => `<li>${f}</li>`).join(''); window.showModal('missing-info-modal'); return; } document.getElementById('approve-id-target').value = id; window.showModal('approve-confirm-modal'); };
-    window.submitApprove = async () => { const id = document.getElementById('approve-id-target').value; const btn = document.getElementById('btn-submit-approve'); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...'; await fetch(`${BACKEND_URL}/api/requests/${id}/approve`, { method: 'POST' }); btn.innerHTML = 'Đồng ý duyệt'; window.closeModal('approve-confirm-modal'); loadData(); };
+    window.submitApprove = async () => { const id = document.getElementById('approve-id-target').value; const btn = document.getElementById('btn-submit-approve'); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...'; await fetch(`${LOCAL_AGENT_URL}/api/requests/${id}/approve`, { method: 'POST' }); btn.innerHTML = 'Đồng ý duyệt'; window.closeModal('approve-confirm-modal'); loadData(); };
 
     window.handleRejectClick = (id, missingStr) => { document.getElementById('reject-id-target').value = id; const textInput = document.getElementById('reject-reason'); if(missingStr) textInput.value = `Biểu mẫu đăng ký bị thiếu các trường thông tin bắt buộc: ${missingStr}`; else textInput.value = ''; window.showModal('reject-modal'); };
     window.submitReject = async () => {
         const id = document.getElementById('reject-id-target').value; const reason = document.getElementById('reject-reason').value || 'Mẫu đăng ký không hợp lệ.';
         const btn = document.getElementById('btn-submit-reject'); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
-        try { const response = await fetch(`${BACKEND_URL}/api/requests/${id}/reject`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: reason }) }); const result = await response.json(); if (result.success) { window.closeModal('reject-modal'); loadData(); } else { alert("Lỗi server trả về: " + (result.message || "Không xác định")); } } catch (e) { alert("Lỗi kết nối Server: " + e.message); }
+        try { const response = await fetch(`${LOCAL_AGENT_URL}/api/requests/${id}/reject`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: reason }) }); const result = await response.json(); if (result.success) { window.closeModal('reject-modal'); loadData(); } else { alert("Lỗi server trả về: " + (result.message || "Không xác định")); } } catch (e) { alert("Lỗi kết nối Server: " + e.message); }
         btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Gửi Email';
     };
 
     window.confirmCompleteClick = (id) => { document.getElementById('complete-id-target').value = id; window.showModal('complete-confirm-modal'); };
-    window.submitComplete = async () => { const id = document.getElementById('complete-id-target').value; const btn = document.getElementById('btn-submit-complete'); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...'; await fetch(`${BACKEND_URL}/api/requests/${id}/complete`, { method: 'POST' }); btn.innerHTML = 'Hoàn thành'; window.closeModal('complete-confirm-modal'); loadData(); };
+    window.submitComplete = async () => { const id = document.getElementById('complete-id-target').value; const btn = document.getElementById('btn-submit-complete'); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...'; await fetch(`${LOCAL_AGENT_URL}/api/requests/${id}/complete`, { method: 'POST' }); btn.innerHTML = 'Hoàn thành'; window.closeModal('complete-confirm-modal'); loadData(); };
 
     window.openTaskDetail = (id) => {
         const req = window.currentIamData.find(r => r.id === id); if (!req) return;
@@ -256,7 +256,7 @@
     window.submitCloseTask = async () => {
         if(!confirm("Bạn có chắc chắn muốn ĐÓNG task này không?")) return;
         const id = document.getElementById('detail-id-target').value; const btn = document.getElementById('btn-detail-close-task'); const originalText = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang đóng...';
-        try { await fetch(`${BACKEND_URL}/api/requests/${id}/close`, { method: 'POST' }); window.closeModal('task-detail-modal'); loadData(); } catch (e) { alert("Lỗi khi đóng Task!"); }
+        try { await fetch(`${LOCAL_AGENT_URL}/api/requests/${id}/close`, { method: 'POST' }); window.closeModal('task-detail-modal'); loadData(); } catch (e) { alert("Lỗi khi đóng Task!"); }
         btn.innerHTML = originalText;
     };
 
@@ -495,7 +495,7 @@
     window.submitUpdateDeviceLabel = async () => {
         const mac = document.getElementById('hdn-detail-mac').value; const name = document.getElementById('txt-detail-custom-name').value;
         if (!name.trim()) return alert("Vui lòng nhập tên!");
-        const res = await fetch(`${BACKEND_URL}/api/network/update-label`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac: mac, customName: name }) });
+        const res = await fetch(`${LOCAL_AGENT_URL}/api/network/update-label`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac: mac, customName: name }) });
         const result = await res.json(); if (result.success) { window.closeModal('net-device-detail-modal'); fetchLocalNetworkData(); } else { alert(result.message); }
     };
 
@@ -507,7 +507,7 @@
     window.executePortScan = async (ip) => {
         window.showModal('net-terminal-modal'); writeToTerminal(`[+] Nmap Mini-Scan Host: ${ip}...`, true); writeToTerminal(`[*] Đang rà soát port...`);
         try {
-            const res = await fetch(`${BACKEND_URL}/api/network/port-scan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip: ip }) });
+            const res = await fetch(`${LOCAL_AGENT_URL}/api/network/port-scan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip: ip }) });
             const result = await res.json();
             if (result.success && result.openPorts.length > 0) {
                 writeToTerminal(`<span class="text-yellow-400">[!] PHÁT HIỆN PORT ĐANG MỞ TRÊN HOST ${ip}:</span>`);
@@ -519,13 +519,13 @@
 
     window.executeWOL = async (mac) => {
         window.showModal('net-terminal-modal'); writeToTerminal(`[+] Đang chạy WOL...`, true);
-        const res = await fetch(`${BACKEND_URL}/api/network/wol`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac: mac }) });
+        const res = await fetch(`${LOCAL_AGENT_URL}/api/network/wol`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac: mac }) });
         const result = await res.json(); if (result.success) { writeToTerminal(`[✔] ${result.message}`); } else { writeToTerminal(`[-] Thất bại: ${result.message}`); }
     };
 
     window.runPingSweepTool = async () => {
         window.showModal('net-terminal-modal'); writeToTerminal(`[+] KÍCH HOẠT RADAR Ping Sweep...`, true); writeToTerminal(`[*] Đang rải ICMP...`);
-        await fetch(`${BACKEND_URL}/api/network/trigger-scan`, { method: 'POST' }); writeToTerminal(`[+] Tiến trình đang quét ngầm trên Server...`);
+        await fetch(`${LOCAL_AGENT_URL}/api/network/trigger-scan`, { method: 'POST' }); writeToTerminal(`[+] Tiến trình đang quét ngầm trên Server...`);
     };
 
     window.runPortScanTool = () => alert("Click thẳng vào 1 dòng thiết bị dưới bảng để chọn quét Port!");
@@ -560,7 +560,7 @@
         if(syslogPoller) clearInterval(syslogPoller);
         syslogPoller = setInterval(async () => {
             try {
-                const res = await fetch(`${BACKEND_URL}/api/network/syslog`);
+                const res = await fetch(`${LOCAL_AGENT_URL}/api/network/syslog`);
                 const result = await res.json();
                 if (result.success && result.data.length > 0) {
                     const term = document.getElementById('net-terminal-output');
@@ -588,7 +588,7 @@
         
         try {
             // Mặc định Pass community là 'public', nếu router mày đổi thì sửa ở đây
-            const res = await fetch(`${BACKEND_URL}/api/network/snmp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip: ip, community: 'public' }) });
+            const res = await fetch(`${LOCAL_AGENT_URL}/api/network/snmp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip: ip, community: 'public' }) });
             const result = await res.json();
             
             if (result.success) {
@@ -618,7 +618,7 @@
 
     async function fetchAndRenderNetflow() {
         try {
-            const res = await fetch(`${BACKEND_URL}/api/network/netflow`);
+            const res = await fetch(`${LOCAL_AGENT_URL}/api/network/netflow`);
             const result = await res.json();
             if (result.success) {
                 const tbody = document.getElementById('netflow-list');
