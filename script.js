@@ -1,7 +1,9 @@
 (function() {
+    // KÊNH KẾT NỐI (GOM HẾT LÊN ĐẦU CHO GỌN)
     const supabaseUrl = 'https://bxeddeelymssuhkqaldl.supabase.co'; 
     const supabaseKey = 'sb_publishable_107e75n5oK1mUvevQlIbsA_wm6MtInL';     
-    const BACKEND_URL = 'https://iam-cloud-api.onrender.com';
+    const BACKEND_URL = 'https://iam-cloud-api.onrender.com'; // Cloud cho Form & IAM
+    const LOCAL_AGENT_URL = 'http://localhost:10000'; // Local cho Tool mạng LAN
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
     // ==========================================
@@ -263,58 +265,42 @@
     // ==========================================
     // 6. MODULE: ENGINE GIÁM SÁT MẠNG LIVE
     // ==========================================
-   // ĐẢM BẢO CÁC BIẾN NÀY NẰM Ở ĐẦU FILE SCRIPT.JS HOẶC BÊN NGOÀI HÀM
     let networkChartInstance = null;
     let agentPoller = null;
-    const LOCAL_AGENT_URL = 'http://localhost:10000';
     let localNetworkCache = [];
 
-    // HÀM KHỞI TẠO TAB GIÁM SÁT MẠNG (DÒNG 269 CỦA MÀY ĐẤY)
+    // HÀM KHỞI TẠO TAB GIÁM SÁT MẠNG
     window.initNetworkDashboard = () => {
-        // 1. Gọi hàm check Agent ngay khi mở Tab Mạng
         checkAgentConnection();
-        
-        // 2. Khởi tạo biểu đồ LAN với biến ĐỘC QUYỀN (networkCtx) đéo đụng hàng với ai
         const networkCanvas = document.getElementById('networkChart');
-        if (!networkCanvas) return; // Bảo vệ an toàn nếu không tìm thấy canvas
+        if (!networkCanvas) return;
         
         const networkCtx = networkCanvas.getContext('2d');
-        if (networkChartInstance) {
-            networkChartInstance.destroy(); // Dọn dẹp biểu đồ cũ nếu có F5
-        }
+        if (networkChartInstance) { networkChartInstance.destroy(); }
         
         networkChartInstance = new Chart(networkCtx, {
             type: 'line',
-            data: {
-                labels: [], // Trục X thời gian
-                datasets: [
-                    { label: 'Download (Mbps)', borderColor: '#4F46E5', backgroundColor: 'rgba(79, 70, 229, 0.1)', data: [], fill: true, tension: 0.4 },
-                    { label: 'Upload (Mbps)', borderColor: '#EC4899', backgroundColor: 'rgba(236, 72, 153, 0.1)', data: [], fill: true, tension: 0.4 }
-                ]
-            },
+            data: { labels: [], datasets: [ { label: 'Download (Mbps)', borderColor: '#4F46E5', backgroundColor: 'rgba(79, 70, 229, 0.1)', data: [], fill: true, tension: 0.4 }, { label: 'Upload (Mbps)', borderColor: '#EC4899', backgroundColor: 'rgba(236, 72, 153, 0.1)', data: [], fill: true, tension: 0.4 } ] },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
         });
     };
 
-    // HÀM CHECK KẾT NỐI XUỐNG LOCALHOST AGENT
     window.checkAgentConnection = async () => {
         const overlay = document.getElementById('agent-overlay');
         try {
             const res = await fetch(`${LOCAL_AGENT_URL}/api/health`, { method: 'GET' });
             const result = await res.json();
-            
             if (result.success) {
-                if (overlay) overlay.classList.add('hidden'); // Agent sống -> Ẩn màn che
-                fetchLocalNetworkData(); // Kéo data mạng về liền
-                if (!agentPoller) agentPoller = setInterval(fetchLocalNetworkData, 10000); // 10s quét lại
+                if (overlay) overlay.classList.add('hidden');
+                fetchLocalNetworkData();
+                if (!agentPoller) agentPoller = setInterval(fetchLocalNetworkData, 10000);
             }
         } catch (e) {
-            if (overlay) overlay.classList.remove('hidden'); // Agent chết -> Hiện màn che đòi tải
+            if (overlay) overlay.classList.remove('hidden');
             if (agentPoller) { clearInterval(agentPoller); agentPoller = null; }
         }
     };
 
-    // HÀM LẤY DATA MẠNG TỪ AGENT ĐỔ VÀO BẢNG VÀ BIỂU ĐỒ
     async function fetchLocalNetworkData() {
         try {
             const res = await fetch(`${LOCAL_AGENT_URL}/api/network/status`); 
@@ -325,7 +311,6 @@
                 if (typeof updateNetworkStats === 'function') updateNetworkStats(result.data); 
             }
 
-            // Bơm số ngẫu nhiên cho biểu đồ chạy mượt (Khè sếp)
             const mockDownload = (Math.random() * 80 + 10).toFixed(2);
             const mockUpload = (Math.random() * 35 + 5).toFixed(2);
             
@@ -334,7 +319,6 @@
                 networkChartInstance.data.labels.push(now);
                 networkChartInstance.data.datasets[0].data.push(mockDownload);
                 networkChartInstance.data.datasets[1].data.push(mockUpload);
-                
                 if (networkChartInstance.data.labels.length > 15) {
                     networkChartInstance.data.labels.shift();
                     networkChartInstance.data.datasets[0].data.shift();
@@ -349,61 +333,23 @@
         }
     }
 
-    // Hàm cập nhật Biểu đồ hiệu ứng trôi (Sliding effect)
-    function updateChartLive(download, upload) {
-        if(!networkChartInstance) return;
-        const now = new Date();
-        const timeLabel = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-        const data = networkChartInstance.data;
-        
-        // Push data mới vào cuối biểu đồ
-        data.labels.push(timeLabel);
-        data.datasets[0].data.push(download);
-        data.datasets[1].data.push(upload);
-
-        // Giữ tối đa 10 cột mốc thời gian để biểu đồ trôi sang trái, không bị nén lại
-        if (data.labels.length > 10) {
-            data.labels.shift();
-            data.datasets[0].data.shift();
-            data.datasets[1].data.shift();
-        }
-        
-        networkChartInstance.update();
-    }
-
-    // BIẾN TOÀN CỤC CHO GIAO DIỆN MẠNG
     let currentNetFilter = 'all';
-    let collapsedSubnets = new Set(); // Bộ nhớ lưu những nhóm VLAN đang bị đóng lại
+    let collapsedSubnets = new Set(); 
 
-    // Hàm đổi bộ lọc (Khi click vào 4 thẻ card trên cùng)
     window.filterNetworkStatus = (status) => {
         currentNetFilter = status;
         const cards = { 'all': 'net-card-all', 'online': 'net-card-online', 'offline': 'net-card-offline', 'warning': 'net-card-warning' };
-        
-        // Reset CSS mờ đi
-        Object.values(cards).forEach(id => { 
-            const el = document.getElementById(id);
-            if(el) { el.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50/30'); }
-        });
-        
-        // Tô đậm thẻ đang chọn
-        if(document.getElementById(cards[status])) {
-            document.getElementById(cards[status]).classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-50/30');
-        }
-        
-        // Ép vẽ lại bảng ngay lập tức
+        Object.values(cards).forEach(id => { const el = document.getElementById(id); if(el) { el.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50/30'); } });
+        if(document.getElementById(cards[status])) { document.getElementById(cards[status]).classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-50/30'); }
         renderNetworkTable(localNetworkCache);
     };
 
-    // Hàm Đóng/Mở (Thu gọn) danh sách VLAN
     window.toggleSubnetGroup = (subnet) => {
         if(collapsedSubnets.has(subnet)) collapsedSubnets.delete(subnet);
         else collapsedSubnets.add(subnet);
-        renderNetworkTable(localNetworkCache); // Vẽ lại bảng giữ nguyên trạng thái Live
+        renderNetworkTable(localNetworkCache);
     };
 
-    // Cập nhật số liệu trên 4 thẻ Card (Không bị ảnh hưởng bởi bộ lọc)
     function updateNetworkStats(devices) {
         document.getElementById('net-total').innerText = devices.length; 
         document.getElementById('net-online').innerText = devices.filter(d => d.status !== 'offline').length; 
@@ -411,15 +357,12 @@
         document.getElementById('net-ping').innerText = devices.filter(d => d.status === 'warning' || parseInt(d.ping) > 50).length;
     }
 
-    // SIÊU HÀM VẼ BẢNG: Lọc -> Gộp Nhóm -> Xổ/Thu Gọn
     function renderNetworkTable(devices) {
-        // Bước 1: Bọc bộ lọc (Theo thẻ Card)
         let filteredData = devices;
         if(currentNetFilter === 'online') filteredData = devices.filter(d => d.status === 'online');
         if(currentNetFilter === 'offline') filteredData = devices.filter(d => d.status === 'offline');
         if(currentNetFilter === 'warning') filteredData = devices.filter(d => d.status === 'warning' || parseInt(d.ping) > 50);
 
-        // Bước 2: Chia khay theo Subnet (VLAN)
         const groups = {};
         filteredData.forEach(d => {
             const parts = d.ip.split('.');
@@ -428,7 +371,6 @@
             groups[subnet].push(d);
         });
 
-        // Bước 3: Ráp giao diện
         let finalHTML = '';
         if (Object.keys(groups).length === 0) {
             document.getElementById('network-device-list').innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-slate-500 italic">Không có thiết bị nào thỏa mãn bộ lọc.</td></tr>`;
@@ -437,39 +379,25 @@
 
         for (const [subnet, nodes] of Object.entries(groups)) {
             const isCollapsed = collapsedSubnets.has(subnet);
-            
-            // Thanh Tiêu đề Nhóm (Click để Đóng/Mở)
             finalHTML += `
             <tr onclick="toggleSubnetGroup('${subnet}')" class="bg-indigo-50/80 border-y border-indigo-100 hover:bg-indigo-100 transition-colors cursor-pointer select-none group">
                 <td colspan="6" class="px-6 py-2.5 font-bold text-indigo-800 text-xs uppercase tracking-wider">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <i class="fa-solid fa-layer-group text-indigo-500 mr-2"></i> 
-                            DẢI MẠNG: <span class="ml-1 font-mono text-indigo-600">${subnet}</span> 
-                            <span class="ml-3 px-2 py-0.5 bg-indigo-200 text-indigo-700 rounded-full text-[10px]">${nodes.length} thiết bị</span>
-                        </div>
+                        <div class="flex items-center"><i class="fa-solid fa-layer-group text-indigo-500 mr-2"></i> DẢI MẠNG: <span class="ml-1 font-mono text-indigo-600">${subnet}</span> <span class="ml-3 px-2 py-0.5 bg-indigo-200 text-indigo-700 rounded-full text-[10px]">${nodes.length} thiết bị</span></div>
                         <i class="fa-solid fa-chevron-${isCollapsed ? 'down' : 'up'} text-indigo-400 group-hover:text-indigo-600 transition-transform"></i>
                     </div>
                 </td>
             </tr>`;
 
-            // Nếu ĐANG ĐÓNG (Thu gọn) thì BỎ QUA không vẽ các dòng máy con bên trong
             if (isCollapsed) continue;
 
-            // Nếu ĐANG MỞ, vẽ danh sách máy
             finalHTML += nodes.map(d => {
                 const statusBadge = d.status === 'online' ? '<span class="px-2.5 py-1 bg-green-100 text-green-700 rounded-md text-xs font-semibold flex items-center w-max"><i class="fa-solid fa-circle text-[8px] mr-1.5"></i> Online</span>' : 
                                     d.status === 'warning' ? '<span class="px-2.5 py-1 bg-orange-100 text-orange-700 rounded-md text-xs font-semibold flex items-center w-max"><i class="fa-solid fa-triangle-exclamation text-[10px] mr-1.5"></i> High Ping</span>' : 
                                     '<span class="px-2.5 py-1 bg-red-100 text-red-700 rounded-md text-xs font-semibold flex items-center w-max"><i class="fa-solid fa-plug-circle-xmark text-[10px] mr-1.5"></i> Offline</span>';
-                
                 return `
                 <tr onclick="window.openNetworkNodeDetail('${d.ip}')" class="hover:bg-slate-50 group transition-colors border-b border-slate-100 last:border-0 cursor-pointer">
-                    <td class="px-6 py-4">
-                        <div class="flex items-center">
-                            <div class="w-8 h-8 rounded bg-slate-100 border border-slate-200 flex items-center justify-center mr-3"><i class="fa-solid ${d.icon} text-base"></i></div>
-                            <span class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">${d.name}</span>
-                        </div>
-                    </td>
+                    <td class="px-6 py-4"><div class="flex items-center"><div class="w-8 h-8 rounded bg-slate-100 border border-slate-200 flex items-center justify-center mr-3"><i class="fa-solid ${d.icon} text-base"></i></div><span class="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">${d.name}</span></div></td>
                     <td class="px-6 py-4 font-mono text-indigo-700 font-semibold">${d.ip}</td>
                     <td class="px-6 py-4 font-mono text-slate-500 text-xs">${d.mac}</td>
                     <td class="px-6 py-4"><span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-semibold border border-slate-200">${d.vlan}</span></td>
@@ -482,13 +410,13 @@
         document.getElementById('network-device-list').innerHTML = finalHTML;
     }
 
-    // Các hàm tương tác sâu
     window.openNetworkNodeDetail = (ip) => {
         const node = localNetworkCache.find(n => n.ip === ip); if (!node) return;
         document.getElementById('lbl-detail-ip').innerText = node.ip; document.getElementById('lbl-detail-mac').innerText = node.mac; document.getElementById('txt-detail-custom-name').value = node.name.startsWith('Device-') || node.name.startsWith('Thiết bị-') ? '' : node.name; document.getElementById('hdn-detail-mac').value = node.mac; document.getElementById('hdn-detail-ip').value = node.ip;
         document.getElementById('detail-node-icon').className = `fa-solid ${node.icon}`;
         document.getElementById('btn-quick-portscan').onclick = () => { window.closeModal('net-device-detail-modal'); window.executePortScan(node.ip); };
         document.getElementById('btn-quick-wol').onclick = () => { window.closeModal('net-device-detail-modal'); window.executeWOL(node.mac); };
+        if(document.getElementById('btn-quick-snmp')) { document.getElementById('btn-quick-snmp').onclick = () => { window.closeModal('net-device-detail-modal'); window.executeSNMP(node.ip); }; }
         window.showModal('net-device-detail-modal');
     };
 
@@ -509,11 +437,11 @@
         try {
             const res = await fetch(`${LOCAL_AGENT_URL}/api/network/port-scan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip: ip }) });
             const result = await res.json();
-            if (result.success && result.openPorts.length > 0) {
+            if (result.success && result.openPorts && result.openPorts.length > 0) {
                 writeToTerminal(`<span class="text-yellow-400">[!] PHÁT HIỆN PORT ĐANG MỞ TRÊN HOST ${ip}:</span>`);
                 result.openPorts.forEach(p => { let desc = p === 22 ? 'SSH' : p === 80 ? 'HTTP' : p === 443 ? 'HTTPS' : p === 445 ? 'SMB/LanMan' : p === 3389 ? 'RDP' : 'Service'; writeToTerminal(`  👉 Port <span class="font-bold text-white">${p}</span>/tcp -> <span class="text-green-500 font-bold">OPEN</span> (${desc})`); });
             } else { writeToTerminal(`<span class="text-red-400">[-] Không có port mở.</span>`); }
-        } catch (e) { writeToTerminal(`[-] Lỗi hệ thống.`); }
+        } catch (e) { writeToTerminal(`[-] Lỗi hệ thống: ${e.message}`); }
         writeToTerminal(`\n[✔] Hoàn tất.`);
     };
 
@@ -551,7 +479,6 @@
     // ==========================================
     let syslogPoller = null;
 
-    // 1. Mở màn hình Syslog (Chạy Real-time Terminal)
     window.openSyslogMonitor = () => {
         window.showModal('net-terminal-modal');
         writeToTerminal(`[+] ĐANG KẾT NỐI VÀO LÕI UDP SYSLOG PORT 1514...`, true);
@@ -562,45 +489,28 @@
             try {
                 const res = await fetch(`${LOCAL_AGENT_URL}/api/network/syslog`);
                 const result = await res.json();
-                if (result.success && result.data.length > 0) {
+                if (result.success && result.data && result.data.length > 0) {
                     const term = document.getElementById('net-terminal-output');
-                    // Chỉ render 20 dòng mới nhất để tránh lag trình duyệt
-                    const html = result.data.slice(0, 20).map(l => 
-                        `<div class="border-b border-green-900/30 pb-1 mb-1"><span class="text-blue-400">[${l.time}]</span> <span class="text-yellow-400">${l.ip}</span>: <span class="text-green-300">${l.log}</span></div>`
-                    ).join('');
-                    if(term.innerHTML !== html) term.innerHTML = html; // Tránh chớp nháy
+                    const html = result.data.slice(0, 20).map(l => `<div class="border-b border-green-900/30 pb-1 mb-1"><span class="text-blue-400">[${l.time}]</span> <span class="text-yellow-400">${l.ip}</span>: <span class="text-green-300">${l.log}</span></div>`).join('');
+                    if(term.innerHTML !== html) term.innerHTML = html; 
                 }
             } catch(e) {}
-        }, 2000); // Cứ 2s kéo log 1 lần
+        }, 2000); 
     };
 
-    // Tắt Poller khi đóng Terminal
-    const oldCloseModal = window.closeModal;
-    window.closeModal = (id) => {
-        if(id === 'net-terminal-modal' && syslogPoller) clearInterval(syslogPoller);
-        oldCloseModal(id);
-    };
-
-    // 2. Chạy quét thông số phần cứng SNMP
     window.executeSNMP = async (ip) => {
         window.showModal('net-terminal-modal');
         writeToTerminal(`[+] Khởi động giao thức SNMP v2c đâm vào phần cứng IP: ${ip}...`, true);
-        
         try {
-            // Mặc định Pass community là 'public', nếu router mày đổi thì sửa ở đây
             const res = await fetch(`${LOCAL_AGENT_URL}/api/network/snmp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip: ip, community: 'public' }) });
             const result = await res.json();
-            
             if (result.success) {
                 writeToTerminal(`<span class="text-emerald-400">[✔] TRÍCH XUẤT THÀNH CÔNG:</span>`);
                 result.data.forEach((item, idx) => {
                     let desc = idx === 0 ? "Tên thiết bị (Hostname)" : idx === 1 ? "Thời gian Uptime" : "Mô tả phần cứng/OS";
                     writeToTerminal(`  👉 <span class="text-slate-400">${desc}:</span> <span class="font-bold text-white">${item.value}</span>`);
                 });
-            } else {
-                writeToTerminal(`<span class="text-red-400">[-] Thất bại: ${result.message}</span>`);
-                writeToTerminal(`<span class="text-slate-500">Gợi ý: Mày đã vào Winbox -> IP -> SNMP -> bật Enable lên chưa?</span>`);
-            }
+            } else { writeToTerminal(`<span class="text-red-400">[-] Thất bại: ${result.message}</span>`); }
         } catch (e) { writeToTerminal(`[-] Lỗi mạng khi gọi API SNMP.`); }
     };
 
@@ -613,7 +523,7 @@
         window.showModal('netflow-modal');
         fetchAndRenderNetflow();
         if(netflowPoller) clearInterval(netflowPoller);
-        netflowPoller = setInterval(fetchAndRenderNetflow, 3000); // 3s cập nhật 1 lần
+        netflowPoller = setInterval(fetchAndRenderNetflow, 3000);
     };
 
     async function fetchAndRenderNetflow() {
@@ -624,30 +534,15 @@
                 const tbody = document.getElementById('netflow-list');
                 const dataObj = result.data;
                 const entries = Object.keys(dataObj).map(ip => ({ ip, bytes: dataObj[ip] }));
-                entries.sort((a, b) => b.bytes - a.bytes); // Xếp thằng nào xài mạng nhiều lên đầu
+                entries.sort((a, b) => b.bytes - a.bytes);
 
-                if(entries.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-slate-400 italic">Chưa nhận được gói tin NetFlow nào từ Router...</td></tr>';
-                    return;
-                }
+                if(entries.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-slate-400 italic">Chưa nhận được gói tin NetFlow nào từ Router...</td></tr>'; return; }
 
                 tbody.innerHTML = entries.map(e => {
                     let mb = (e.bytes / 1024 / 1024).toFixed(2);
                     let color = mb > 50 ? 'bg-red-500' : mb > 10 ? 'bg-yellow-500' : 'bg-green-500';
                     let node = localNetworkCache.find(n => n.ip === e.ip) || { name: 'Thiết bị ngoài luồng' };
-                    return `
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-4 py-3">
-                            <div class="font-bold text-slate-700">${e.ip}</div>
-                            <div class="text-xs text-slate-500">${node.name}</div>
-                        </td>
-                        <td class="px-4 py-3 text-right font-mono font-bold text-indigo-600">${mb} MB</td>
-                        <td class="px-4 py-3 text-right w-32">
-                            <div class="w-full bg-slate-200 rounded-full h-1.5 mt-2">
-                                <div class="${color} h-1.5 rounded-full transition-all" style="width: ${Math.min((mb/100)*100, 100)}%"></div>
-                            </div>
-                        </td>
-                    </tr>`;
+                    return `<tr class="hover:bg-slate-50 transition-colors"><td class="px-4 py-3"><div class="font-bold text-slate-700">${e.ip}</div><div class="text-xs text-slate-500">${node.name}</div></td><td class="px-4 py-3 text-right font-mono font-bold text-indigo-600">${mb} MB</td><td class="px-4 py-3 text-right w-32"><div class="w-full bg-slate-200 rounded-full h-1.5 mt-2"><div class="${color} h-1.5 rounded-full transition-all" style="width: ${Math.min((mb/100)*100, 100)}%"></div></div></td></tr>`;
                 }).join('');
             }
         } catch(e) {}
@@ -661,69 +556,31 @@
     window.openTopologyMap = () => {
         window.showModal('topology-modal');
         const container = document.getElementById('topology-canvas');
-        
-        // Tạo Gateway gốc (Core Switch)
         let nodesArray = [{ id: 0, label: "Core Switch/Firewall\n(172.15.10.1)", shape: "image", image: "https://cdn-icons-png.flaticon.com/512/2888/2888998.png", size: 40, font: {bold: true} }];
         let edgesArray = [];
 
-        // Đổ toàn bộ Cache mạng lên bản đồ
         localNetworkCache.forEach(node => {
-            if(node.ip === '172.15.10.1' || node.ip === '10.10.1.1') return; // Bỏ qua IP Gateway vì đã gán cứng ở trên
-            
-            // Đổi hình ảnh dựa theo Icon AI đã phân loại
-            let imgUrl = "https://cdn-icons-png.flaticon.com/512/3067/3067260.png"; // PC
+            if(node.ip === '172.15.10.1' || node.ip === '10.10.1.1') return; 
+            let imgUrl = "https://cdn-icons-png.flaticon.com/512/3067/3067260.png";
             if(node.icon.includes('mobile')) imgUrl = "https://cdn-icons-png.flaticon.com/512/2904/2904111.png";
             else if(node.icon.includes('server')) imgUrl = "https://cdn-icons-png.flaticon.com/512/2888/2888998.png";
             else if(node.icon.includes('video')) imgUrl = "https://cdn-icons-png.flaticon.com/512/3039/3039401.png";
-
-            // Node màu đỏ nếu offline, xanh nếu online
             let colorBorder = node.status === 'offline' ? '#ef4444' : '#10b981';
 
-            nodesArray.push({
-                id: node.ip,
-                label: `${node.name}\n${node.ip}`,
-                shape: "circularImage",
-                image: imgUrl,
-                size: 25,
-                color: { border: colorBorder, background: '#ffffff' },
-                borderWidth: 3
-            });
-
-            // Nối dây cáp từ Gateway tới Node (Dây đứt nét màu đỏ nếu rớt mạng)
-            edgesArray.push({
-                from: 0, 
-                to: node.ip, 
-                color: node.status === 'offline' ? {color:'#fca5a5'} : {color:'#94a3b8'},
-                dashes: node.status === 'offline'
-            });
+            nodesArray.push({ id: node.ip, label: `${node.name}\n${node.ip}`, shape: "circularImage", image: imgUrl, size: 25, color: { border: colorBorder, background: '#ffffff' }, borderWidth: 3 });
+            edgesArray.push({ from: 0, to: node.ip, color: node.status === 'offline' ? {color:'#fca5a5'} : {color:'#94a3b8'}, dashes: node.status === 'offline' });
         });
 
         const data = { nodes: new vis.DataSet(nodesArray), edges: new vis.DataSet(edgesArray) };
-        const options = {
-            physics: { solver: "forceAtlas2Based", forceAtlas2Based: { gravitationalConstant: -100, springLength: 100 } },
-            edges: { smooth: { type: "continuous" } },
-            interaction: { hover: true, tooltipDelay: 200 }
-        };
-
+        const options = { physics: { solver: "forceAtlas2Based", forceAtlas2Based: { gravitationalConstant: -100, springLength: 100 } }, edges: { smooth: { type: "continuous" } }, interaction: { hover: true, tooltipDelay: 200 } };
         if(networkTopology) networkTopology.destroy();
         networkTopology = new vis.Network(container, data, options);
     };
 
-    // Tắt Poller khi đóng Modal Netflow (Sửa lại hàm đóng Modal tổng)
     const oldCloseModalSystem = window.closeModal;
     window.closeModal = (id) => {
         if(id === 'netflow-modal' && netflowPoller) clearInterval(netflowPoller);
         if(id === 'net-terminal-modal' && typeof syslogPoller !== 'undefined' && syslogPoller) clearInterval(syslogPoller);
         oldCloseModalSystem(id);
-    };
-
-    // Gắn sự kiện vào hàm mở Modal chi tiết Node
-    const oldOpenNodeDetail = window.openNetworkNodeDetail;
-    window.openNetworkNodeDetail = (ip) => {
-        oldOpenNodeDetail(ip);
-        const node = localNetworkCache.find(n => n.ip === ip);
-        if(node && document.getElementById('btn-quick-snmp')) {
-            document.getElementById('btn-quick-snmp').onclick = () => { window.closeModal('net-device-detail-modal'); window.executeSNMP(node.ip); };
-        }
     };
 })();
